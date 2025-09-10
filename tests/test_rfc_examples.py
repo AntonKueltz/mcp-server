@@ -38,6 +38,30 @@ class TestRfcExamples(TestCase):
                 },
                 {"jsonrpc": "2.0", "result": 19, "id": 4},
             ),
+            (
+                {"jsonrpc": "2.0", "method": "foobar", "id": "1"},
+                {
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32601, "message": "Method not found"},
+                    "id": "1",
+                },
+            ),
+            (
+                {"jsonrpc": "2.0", "method": 1, "params": "bar"},
+                {
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32600, "message": "Invalid Request"},
+                    "id": None,
+                },
+            ),
+            (
+                [],
+                {
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32600, "message": "Invalid Request"},
+                    "id": None,
+                },
+            ),
         ]
     )
     def test_examples(self, input: dict, expected: dict):
