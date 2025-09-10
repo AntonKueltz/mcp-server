@@ -1,0 +1,17 @@
+[project]
+name = "json-rpc-server"
+version = "0.1.0"
+description = "A lightweight implementation of a JSON-RPC server"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi[all]>=0.116.1",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.13.0",
+]
