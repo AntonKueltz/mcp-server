@@ -27,13 +27,30 @@ async def error_response(
     )
 
 
+async def _call_method(json_rpc_request: JsonRpcRequest) -> Any:
+    if isinstance(json_rpc_request.params, list):
+        return getattr(Methods, json_rpc_request.method)(*json_rpc_request.params)
+    elif isinstance(json_rpc_request.params, dict):
+        return getattr(Methods, json_rpc_request.method)(**json_rpc_request.params)
+    else:
+        return getattr(Methods, json_rpc_request.method)()
+
+
 async def handle_single_request(
     body: Any,
-) -> JsonRpcErrorResponse | JsonRpcSuccessResponse:
+) -> JsonRpcErrorResponse | JsonRpcSuccessResponse | None:
     try:
         json_rpc_request = JsonRpcRequest.model_validate(body)
     except ValidationError:
         return await error_response(INVALID_REQUEST, "Invalid Request")
+
+    # handle notifications which do not expect a response
+    if isinstance(body, dict) and "id" not in body:
+        try:
+            await _call_method(json_rpc_request)
+        except Exception:
+            pass
+        return None
 
     if not hasattr(Methods, json_rpc_request.method):
         return await error_response(
@@ -41,15 +58,7 @@ async def handle_single_request(
         )
 
     try:
-        if isinstance(json_rpc_request.params, list):
-            result = getattr(Methods, json_rpc_request.method)(*json_rpc_request.params)
-        elif isinstance(json_rpc_request.params, dict):
-            result = getattr(Methods, json_rpc_request.method)(
-                **json_rpc_request.params
-            )
-        else:
-            result = getattr(Methods, json_rpc_request.method)()
-
+        result = await _call_method(json_rpc_request)
     except TypeError:
         return await error_response(INVALID_PARAMS, "Invalid params", json_rpc_request)
 

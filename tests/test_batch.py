@@ -47,7 +47,7 @@ class TestRfcExamples(TestCase):
                         "params": [10, 2],
                         "id": 2,
                     },
-                    {"jsonrpc": "2.0", "method": "foobar", "id": "1"},
+                    {"jsonrpc": "2.0", "method": "does_not_exist", "id": "1"},
                 ],
                 [
                     {"jsonrpc": "2.0", "result": 19, "id": 1},

@@ -24,7 +24,7 @@ class JsonRpcRequest(BaseModel):
     jsonrpc: str
     method: str
     params: StructuredType | None = None
-    id: str | NumberType | None
+    id: str | NumberType | None = None
 
 
 JsonRpcBatchRequest = Annotated[list[JsonRpcRequest], Field(min_length=1)]
@@ -45,7 +45,7 @@ class JsonRpcErrorObject(BaseModel):
     data: JsonType = None
 
     @model_serializer
-    def serialize(self, _info):
+    def serialize(self, _):
         out = {"code": self.code, "message": self.message}
         if self.data is not None:
             out["data"] = self.data
