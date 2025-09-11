@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from json_rpc_server.model import (
-    INVALID_REQUEST,
+    PARSE_ERROR,
     JsonRpcErrorObject,
     JsonRpcErrorResponse,
 )
@@ -16,14 +16,14 @@ app.include_router(router)
 
 
 @app.exception_handler(RequestValidationError)
-async def invalid_request_handler(_, exc: RequestValidationError):
-    response = JsonRpcErrorResponse(
-        jsonrpc="2.0" if not hasattr(exc.body, "jsonrpc") else exc.body.jsonrpc,
-        id=None if not hasattr(exc.body, "id") else exc.body.id,
+async def invalid_request_handler(_, __):
+    error = JsonRpcErrorResponse(
+        jsonrpc="2.0",
+        id=None,
         error=JsonRpcErrorObject(
-            code=INVALID_REQUEST,
-            message="Invalid Request",
+            code=PARSE_ERROR,
+            message="Parse error",
         ),
     )
 
-    return JSONResponse(status_code=BAD_REQUEST, content=response.model_dump())
+    return JSONResponse(status_code=BAD_REQUEST, content=error.model_dump())

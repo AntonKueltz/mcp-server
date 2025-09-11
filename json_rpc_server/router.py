@@ -1,66 +1,49 @@
-from fastapi import APIRouter
+from http.client import BAD_REQUEST, OK, PARTIAL_CONTENT
+from typing import Any
 
-from json_rpc_server.methods import Methods
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+
+from json_rpc_server.handler import error_response, handle_single_request
 from json_rpc_server.model import (
-    INVALID_PARAMS,
-    JsonRpcRequest,
-    JsonRpcBatchRequest,
-    JsonRpcErrorObject,
+    INVALID_REQUEST,
     JsonRpcErrorResponse,
     JsonRpcSuccessResponse,
-    METHOD_NOT_FOUND,
 )
 
 router = APIRouter()
 
 
-async def _handle_single_request(
-    body: JsonRpcRequest,
-) -> JsonRpcErrorResponse | JsonRpcSuccessResponse:
-    if not hasattr(Methods, body.method):
-        return JsonRpcErrorResponse(
-            jsonrpc=body.jsonrpc,
-            id=body.id,
-            error=JsonRpcErrorObject(
-                code=METHOD_NOT_FOUND,
-                message="Method not found",
-            ),
-        )
+def _determine_status_code(
+    result: JsonRpcErrorResponse
+    | JsonRpcSuccessResponse
+    | list[JsonRpcErrorResponse | JsonRpcSuccessResponse],
+) -> int:
+    if not isinstance(result, list):
+        result = [result]
 
-    try:
-        if isinstance(body.params, list):
-            result = getattr(Methods, body.method)(*body.params)
-        elif isinstance(body.params, dict):
-            result = getattr(Methods, body.method)(**body.params)
-        else:
-            result = getattr(Methods, body.method)()
-
-    except TypeError:
-        return JsonRpcErrorResponse(
-            jsonrpc=body.jsonrpc,
-            id=body.id,
-            error=JsonRpcErrorObject(
-                code=INVALID_PARAMS,
-                message=f"{body.params} are not valid parameters for {body.method}",
-            ),
-        )
-
-    return JsonRpcSuccessResponse(
-        jsonrpc=body.jsonrpc,
-        id=body.id,
-        result=result,
-    )
+    if all([isinstance(r, JsonRpcSuccessResponse) for r in result]):
+        return OK
+    elif all([isinstance(r, JsonRpcErrorResponse) for r in result]):
+        return BAD_REQUEST
+    else:
+        return PARTIAL_CONTENT
 
 
 @router.post("/")
-async def handle_post_json_rpc_request(
-    body: JsonRpcRequest | JsonRpcBatchRequest,
-) -> (
-    JsonRpcErrorResponse
-    | JsonRpcSuccessResponse
-    | list[JsonRpcErrorResponse | JsonRpcSuccessResponse]
-):
+async def handle_post_json_rpc_request(body: list[Any] | dict):
     if isinstance(body, list):
-        return [await _handle_single_request(req) for req in body]
+        if body:
+            results = [await handle_single_request(req) for req in body]
+            status_code = _determine_status_code(results)
+            return JSONResponse(
+                status_code=status_code, content=[r.model_dump() for r in results]
+            )
+        else:
+            result = await error_response(INVALID_REQUEST, "Invalid Request")
+            return JSONResponse(status_code=BAD_REQUEST, content=result.model_dump())
+
     else:
-        return await _handle_single_request(body)
+        result = await handle_single_request(body)
+        status_code = _determine_status_code(result)
+        return JSONResponse(status_code=status_code, content=result.model_dump())
