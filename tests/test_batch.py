@@ -6,7 +6,7 @@ from parameterized import parameterized
 from json_rpc_server.main import app
 
 
-class TestRfcExamples(TestCase):
+class TestBatch(TestCase):
     def setUp(self) -> None:
         self.client = TestClient(app)
 
@@ -29,6 +29,30 @@ class TestRfcExamples(TestCase):
                 ],
                 [
                     {"jsonrpc": "2.0", "result": 19, "id": 1},
+                    {"jsonrpc": "2.0", "result": 8, "id": 2},
+                ],
+            ),
+            (
+                [
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "subtract",
+                        "params": [42],
+                        "id": 1,
+                    },
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "subtract",
+                        "params": [10, 2],
+                        "id": 2,
+                    },
+                ],
+                [
+                    {
+                        "jsonrpc": "2.0",
+                        "error": {"code": -32602, "message": "Invalid params"},
+                        "id": 1,
+                    },
                     {"jsonrpc": "2.0", "result": 8, "id": 2},
                 ],
             ),
@@ -66,8 +90,7 @@ class TestRfcExamples(TestCase):
             ),
         ]
     )
-    def test_examples(self, input: dict, expected: dict):
-        print(input, expected)
+    def test_batch(self, input: dict, expected: dict):
         resp = self.client.post("/", json=input)
         actual = resp.json()
         self.assertEqual(actual, expected)

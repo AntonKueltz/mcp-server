@@ -110,8 +110,7 @@ class TestRfcExamples(TestCase):
             ),
         ]
     )
-    def test_examples(self, input: dict, expected: dict):
-        print(input, expected)
+    def test_rfc_examples(self, input: dict, expected: dict):
         resp = self.client.post("/", json=input)
         actual = resp.json() if resp.status_code != NO_CONTENT else None
         self.assertEqual(actual, expected)
