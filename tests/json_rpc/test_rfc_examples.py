@@ -4,7 +4,7 @@ from unittest import TestCase
 from fastapi.testclient import TestClient
 from parameterized import parameterized
 
-from json_rpc_server.main import app
+from mcp_server.json_rpc.main import app
 
 
 class TestRfcExamples(TestCase):

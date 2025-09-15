@@ -1,7 +1,7 @@
 [project]
-name = "json-rpc-server"
+name = "mcp-server"
 version = "0.1.0"
-description = "A lightweight implementation of a JSON-RPC server"
+description = "An implementation of a MCP server"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -20,4 +20,4 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-addopts = "--cov=json_rpc_server --cov-report=term-missing --cov-fail-under=90"
+addopts = "--cov=mcp_server --cov-report=term-missing --cov-fail-under=90"

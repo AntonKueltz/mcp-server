@@ -1,8 +1,8 @@
 from __future__ import annotations
-from typing import Annotated, TypeAlias
+from typing import TypeAlias
 from typing_extensions import TypeAliasType
 
-from pydantic import BaseModel, Field, model_serializer
+from pydantic import BaseModel, model_serializer
 
 NumberType: TypeAlias = int | float
 PrimitiveType: TypeAlias = str | NumberType | bool | None
@@ -25,9 +25,6 @@ class JsonRpcRequest(BaseModel):
     method: str
     params: StructuredType | None = None
     id: str | NumberType | None = None
-
-
-JsonRpcBatchRequest = Annotated[list[JsonRpcRequest], Field(min_length=1)]
 
 
 class JsonRpcResponse(BaseModel):

@@ -4,12 +4,12 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from json_rpc_server.model import (
+from mcp_server.json_rpc.model import (
     PARSE_ERROR,
     JsonRpcErrorObject,
     JsonRpcErrorResponse,
 )
-from json_rpc_server.router import router
+from mcp_server.json_rpc.router import router
 
 app = FastAPI()
 app.include_router(router)

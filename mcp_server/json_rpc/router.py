@@ -4,8 +4,8 @@ from typing import Any
 from fastapi import APIRouter, BackgroundTasks
 from fastapi.responses import JSONResponse, Response
 
-from json_rpc_server.handler import error_response, handle_single_request
-from json_rpc_server.model import (
+from mcp_server.json_rpc.handler import error_response, handle_single_request
+from mcp_server.json_rpc.model import (
     INVALID_REQUEST,
     JsonRpcErrorResponse,
     JsonRpcSuccessResponse,

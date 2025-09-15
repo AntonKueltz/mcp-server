@@ -3,8 +3,8 @@ from typing import Any
 from fastapi import BackgroundTasks
 from pydantic import ValidationError
 
-from json_rpc_server.methods import Methods
-from json_rpc_server.model import (
+from mcp_server.json_rpc.methods import Methods
+from mcp_server.json_rpc.model import (
     INVALID_PARAMS,
     INVALID_REQUEST,
     METHOD_NOT_FOUND,

@@ -1,4 +1,4 @@
-from json_rpc_server.model import NumberType
+from mcp_server.json_rpc.model import NumberType
 
 
 class Methods:
