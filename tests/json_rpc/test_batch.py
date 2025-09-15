@@ -3,7 +3,7 @@ from unittest import TestCase
 from fastapi.testclient import TestClient
 from parameterized import parameterized
 
-from mcp_server.json_rpc.main import app
+from mcp_server.main import app
 
 
 class TestBatch(TestCase):

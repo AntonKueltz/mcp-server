@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import BackgroundTasks
 from pydantic import ValidationError
 
-from mcp_server.json_rpc.methods import Methods
+from mcp_server.json_rpc.methods import registry
 from mcp_server.json_rpc.model import (
     INVALID_PARAMS,
     INVALID_REQUEST,
@@ -39,11 +39,11 @@ async def error_response(
 
 async def _call_method(json_rpc_request: JsonRpcRequest) -> Any:
     if isinstance(json_rpc_request.params, list):
-        return getattr(Methods, json_rpc_request.method)(*json_rpc_request.params)
+        return registry[json_rpc_request.method](*json_rpc_request.params)
     elif isinstance(json_rpc_request.params, dict):
-        return getattr(Methods, json_rpc_request.method)(**json_rpc_request.params)
+        return registry[json_rpc_request.method](**json_rpc_request.params)
     else:
-        return getattr(Methods, json_rpc_request.method)()
+        return registry[json_rpc_request.method]()
 
 
 async def handle_single_request(
@@ -55,7 +55,7 @@ async def handle_single_request(
     except ValidationError:
         return await error_response(INVALID_REQUEST, "Invalid Request")
 
-    if not hasattr(Methods, json_rpc_request.method):
+    if json_rpc_request.method not in registry:
         return await error_response(
             METHOD_NOT_FOUND, "Method not found", json_rpc_request
         )
