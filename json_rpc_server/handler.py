@@ -18,12 +18,21 @@ from json_rpc_server.model import (
 async def error_response(
     code: int, message: str, request: JsonRpcRequest | None = None
 ) -> JsonRpcErrorResponse:
+    data = None
+
+    if request:
+        if code == INVALID_PARAMS:
+            data = {"params": request.params}
+        elif code == METHOD_NOT_FOUND:
+            data = {"method": request.method}
+
     return JsonRpcErrorResponse(
         jsonrpc=request.jsonrpc if request else "2.0",
         id=request.id if request else None,
         error=JsonRpcErrorObject(
             code=code,
             message=message,
+            data=data,
         ),
     )
 

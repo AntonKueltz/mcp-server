@@ -50,7 +50,11 @@ class TestBatch(TestCase):
                 [
                     {
                         "jsonrpc": "2.0",
-                        "error": {"code": -32602, "message": "Invalid params"},
+                        "error": {
+                            "code": -32602,
+                            "message": "Invalid params",
+                            "data": {"params": [42]},
+                        },
                         "id": 1,
                     },
                     {"jsonrpc": "2.0", "result": 8, "id": 2},
@@ -83,7 +87,11 @@ class TestBatch(TestCase):
                     {"jsonrpc": "2.0", "result": 8, "id": 2},
                     {
                         "jsonrpc": "2.0",
-                        "error": {"code": -32601, "message": "Method not found"},
+                        "error": {
+                            "code": -32601,
+                            "message": "Method not found",
+                            "data": {"method": "does_not_exist"},
+                        },
                         "id": "1",
                     },
                 ],

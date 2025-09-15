@@ -51,7 +51,11 @@ class TestRfcExamples(TestCase):
                 {"jsonrpc": "2.0", "method": "does_not_exist", "id": "1"},
                 {
                     "jsonrpc": "2.0",
-                    "error": {"code": -32601, "message": "Method not found"},
+                    "error": {
+                        "code": -32601,
+                        "message": "Method not found",
+                        "data": {"method": "does_not_exist"},
+                    },
                     "id": "1",
                 },
             ),
