@@ -1,7 +1,7 @@
-from http.client import BAD_REQUEST, NO_CONTENT, OK, PARTIAL_CONTENT
+from http.client import ACCEPTED, BAD_REQUEST, OK, PARTIAL_CONTENT
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 from fastapi.responses import JSONResponse, Response
 
 from json_rpc_server.handler import error_response, handle_single_request
@@ -21,7 +21,7 @@ def _build_response(
     | list[JsonRpcErrorResponse | JsonRpcSuccessResponse | None],
 ) -> Response:
     if not result or (isinstance(result, list) and all([not r for r in result])):
-        return Response(status_code=NO_CONTENT)
+        return Response(status_code=ACCEPTED)
 
     if isinstance(result, list):
         filtered: list[JsonRpcErrorResponse | JsonRpcSuccessResponse] = [
@@ -47,15 +47,19 @@ def _build_response(
 
 
 @router.post("/")
-async def handle_post_json_rpc_request(body: list[Any] | dict):
+async def handle_post_json_rpc_request(
+    body: list[Any] | dict, background_tasks: BackgroundTasks
+):
     if isinstance(body, list):
         if body:
-            result = [await handle_single_request(req) for req in body]
+            result = [
+                await handle_single_request(req, background_tasks) for req in body
+            ]
             return _build_response(result)
         else:
             result = await error_response(INVALID_REQUEST, "Invalid Request")
             return _build_response(result)
 
     else:
-        result = await handle_single_request(body)
+        result = await handle_single_request(body, background_tasks)
         return _build_response(result)

@@ -1,5 +1,6 @@
 from typing import Any
 
+from fastapi import BackgroundTasks
 from pydantic import ValidationError
 
 from json_rpc_server.methods import Methods
@@ -38,19 +39,12 @@ async def _call_method(json_rpc_request: JsonRpcRequest) -> Any:
 
 async def handle_single_request(
     body: Any,
+    background_tasks: BackgroundTasks,
 ) -> JsonRpcErrorResponse | JsonRpcSuccessResponse | None:
     try:
         json_rpc_request = JsonRpcRequest.model_validate(body)
     except ValidationError:
         return await error_response(INVALID_REQUEST, "Invalid Request")
-
-    # handle notifications which do not expect a response
-    if isinstance(body, dict) and "id" not in body:
-        try:
-            await _call_method(json_rpc_request)
-        except Exception:
-            pass
-        return None
 
     if not hasattr(Methods, json_rpc_request.method):
         return await error_response(
@@ -58,6 +52,11 @@ async def handle_single_request(
         )
 
     try:
+        # handle notifications which do not expect a response
+        if json_rpc_request.id is None:
+            background_tasks.add_task(_call_method, json_rpc_request)
+            return None
+
         result = await _call_method(json_rpc_request)
     except TypeError:
         return await error_response(INVALID_PARAMS, "Invalid params", json_rpc_request)

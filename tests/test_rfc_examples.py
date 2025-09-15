@@ -1,4 +1,4 @@
-from http.client import NO_CONTENT
+from http.client import ACCEPTED
 from unittest import TestCase
 
 from fastapi.testclient import TestClient
@@ -103,8 +103,8 @@ class TestRfcExamples(TestCase):
             ),
             (
                 [
-                    {"jsonrpc": "2.0", "method": "notify_sum", "params": [1, 2, 4]},
-                    {"jsonrpc": "2.0", "method": "notify_hello", "params": [7]},
+                    {"jsonrpc": "2.0", "method": "foobar"},
+                    {"jsonrpc": "2.0", "method": "foobar"},
                 ],
                 None,
             ),
@@ -112,5 +112,5 @@ class TestRfcExamples(TestCase):
     )
     def test_rfc_examples(self, input: dict, expected: dict):
         resp = self.client.post("/", json=input)
-        actual = resp.json() if resp.status_code != NO_CONTENT else None
+        actual = resp.json() if resp.status_code != ACCEPTED else None
         self.assertEqual(actual, expected)
