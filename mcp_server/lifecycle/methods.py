@@ -1,5 +1,6 @@
 from mcp_server.lifecycle.model import ClientCapabilities, ServerCapabilities
 from mcp_server.lifecycle.protocol_version import negotiate_version
+from mcp_server.lifecycle.session import session_store
 
 
 def initialize(protocolVersion: str, capabilities: dict, clientInfo: dict) -> dict:
@@ -7,6 +8,7 @@ def initialize(protocolVersion: str, capabilities: dict, clientInfo: dict) -> di
 
     server_capabilities = ServerCapabilities()
     negotiated_version = negotiate_version(protocolVersion)
+    _ = session_store.assign_session()
 
     result = {
         "protocolVersion": negotiated_version.value,
