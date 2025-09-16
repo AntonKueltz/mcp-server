@@ -1,4 +1,4 @@
-from http.client import ACCEPTED, BAD_REQUEST, OK, PARTIAL_CONTENT
+from http.client import ACCEPTED, BAD_REQUEST, NO_CONTENT, OK, PARTIAL_CONTENT
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Request
@@ -11,6 +11,7 @@ from mcp_server.json_rpc.model import (
     JsonRpcErrorResponse,
     JsonRpcSuccessResponse,
 )
+from mcp_server.lifecycle.session import session_store
 
 router = APIRouter()
 
@@ -61,9 +62,7 @@ def _build_response(
 
 
 @router.post("/")
-async def handle_post_json_rpc_request(
-    body: list[Any] | dict, background_tasks: BackgroundTasks
-):
+async def json_rpc_request(body: list[Any] | dict, background_tasks: BackgroundTasks):
     if isinstance(body, list):
         if body:
             result = [
@@ -80,7 +79,7 @@ async def handle_post_json_rpc_request(
 
 
 @router.get("/")
-async def handle_open_sse_stream(request: Request):
+async def open_sse_stream(request: Request):
     from mcp_server.sse.producer import event_producer
 
     async def stream_generator():
@@ -95,3 +94,12 @@ async def handle_open_sse_stream(request: Request):
                 yield ": keep-alive\n\n"
 
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
+
+
+@router.delete("/")
+async def terminate_session(request: Request):
+    if "mcp-session-id" not in request.headers:
+        return Response(status_code=BAD_REQUEST)
+
+    session_store.terminate_session(request.headers["mcp-session-id"])
+    return Response(status_code=NO_CONTENT)

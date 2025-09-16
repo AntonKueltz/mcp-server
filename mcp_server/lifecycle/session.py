@@ -26,12 +26,22 @@ class SessionStore:
         return session_id
 
     def validate_session_id(self, session_id: str) -> bool:
-        [_uuid, _hmac] = session_id.split(self.delimiter)
+        try:
+            [_uuid, _hmac] = session_id.split(self.delimiter)
+        except (AttributeError, ValueError):
+            return False
 
         expected = b64decode(_hmac)
         computed = digest(self.secret_key, b64decode(_uuid), sha3_256)
 
         return compare_digest(expected, computed)
+
+    def terminate_session(self, session_id: str) -> bool:
+        if not self.validate_session_id(session_id):
+            return False
+
+        del self.mapping[session_id]
+        return True
 
 
 session_store = SessionStore()
