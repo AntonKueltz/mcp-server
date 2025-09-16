@@ -33,6 +33,14 @@ class TestLifecycleSession(TestCase):
 
         self.assertTrue(store.terminate_session(session_id))
         self.assertNotIn(session_id, store.mapping)
+    
+    def test_get_invalid_session(self):
+        store = SessionStore()
+        self.assertEqual(store.get_session("foobar"), {})
+    
+    def test_set_invalid_session_data(self):
+        store = SessionStore()
+        self.assertFalse(store.set_session_data("foobar", "key", "value"))
 
 
 class TestLifecycleSessionFunctional(TestCase):

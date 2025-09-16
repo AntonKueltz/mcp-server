@@ -11,6 +11,9 @@ def initialize(
 
     server_capabilities = ServerCapabilities()
     negotiated_version = negotiate_version(protocolVersion)
+    
+    session_id = session_store.assign_session()
+    session_store.set_session_data(session_id, "mcp-protocol-version", negotiated_version.value)
 
     result = {
         "protocolVersion": negotiated_version.value,
@@ -20,8 +23,7 @@ def initialize(
             "version": "0.1.0",
         },
     }
-    headers = {"Mcp-Session-Id": session_store.assign_session()}
-
+    headers = {"mcp-session-id": session_id}
     return result, headers
 
 
