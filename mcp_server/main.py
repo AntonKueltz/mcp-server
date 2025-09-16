@@ -9,7 +9,7 @@ from mcp_server.json_rpc.model import (
     JsonRpcErrorObject,
     JsonRpcErrorResponse,
 )
-from mcp_server.json_rpc.router import router
+from mcp_server.router import router
 
 app = FastAPI()
 app.include_router(router)

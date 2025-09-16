@@ -3,6 +3,7 @@ from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
+from functools import reduce
 
 from mcp_server.json_rpc.handler import error_response, handle_single_request
 from mcp_server.json_rpc.model import (
@@ -14,33 +15,46 @@ from mcp_server.json_rpc.model import (
 router = APIRouter()
 
 
-def _build_response(
-    result: JsonRpcErrorResponse
-    | JsonRpcSuccessResponse
-    | None
-    | list[JsonRpcErrorResponse | JsonRpcSuccessResponse | None],
+def _build_bulk_response(
+    result: list[tuple[JsonRpcErrorResponse | JsonRpcSuccessResponse | None, dict]],
 ) -> Response:
-    if not result or (isinstance(result, list) and all([not r for r in result])):
+    if all([not r for (r, _) in result]):
         return Response(status_code=ACCEPTED)
 
-    if isinstance(result, list):
-        filtered: list[JsonRpcErrorResponse | JsonRpcSuccessResponse] = [
-            r for r in result if r is not None
-        ]
+    headers = reduce(
+        lambda d1, d2: d1 | d2,
+        (h for (r, h) in result if isinstance(r, JsonRpcSuccessResponse)),
+        {},
+    )
+    filtered: list[JsonRpcErrorResponse | JsonRpcSuccessResponse] = [
+        r for (r, _) in result if r is not None
+    ]
 
-        if all([isinstance(r, JsonRpcSuccessResponse) for r in filtered]):
-            status_code = OK
-        elif all([isinstance(r, JsonRpcErrorResponse) for r in filtered]):
-            status_code = BAD_REQUEST
-        else:
-            status_code = PARTIAL_CONTENT
+    if all([isinstance(r, JsonRpcSuccessResponse) for r in filtered]):
+        status_code = OK
+    elif all([isinstance(r, JsonRpcErrorResponse) for r in filtered]):
+        status_code = BAD_REQUEST
+    else:
+        status_code = PARTIAL_CONTENT
 
-        return JSONResponse(
-            status_code=status_code, content=[r.model_dump() for r in filtered]
-        )
+    return JSONResponse(
+        status_code=status_code,
+        content=[r.model_dump() for r in filtered],
+        headers=headers,
+    )
+
+
+def _build_response(
+    result: JsonRpcErrorResponse | JsonRpcSuccessResponse | None,
+    headers: dict,
+) -> Response:
+    if result is None:
+        return Response(status_code=ACCEPTED)
 
     elif isinstance(result, JsonRpcSuccessResponse):
-        return JSONResponse(status_code=OK, content=result.model_dump())
+        return JSONResponse(
+            status_code=OK, content=result.model_dump(), headers=headers
+        )
 
     elif isinstance(result, JsonRpcErrorResponse):
         return JSONResponse(status_code=BAD_REQUEST, content=result.model_dump())
@@ -55,14 +69,14 @@ async def handle_post_json_rpc_request(
             result = [
                 await handle_single_request(req, background_tasks) for req in body
             ]
-            return _build_response(result)
+            return _build_bulk_response(result)
         else:
             result = await error_response(INVALID_REQUEST, "Invalid Request")
-            return _build_response(result)
+            return _build_response(result, {})
 
     else:
         result = await handle_single_request(body, background_tasks)
-        return _build_response(result)
+        return _build_response(*result)
 
 
 @router.get("/")
