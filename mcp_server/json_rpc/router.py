@@ -1,8 +1,8 @@
 from http.client import ACCEPTED, BAD_REQUEST, OK, PARTIAL_CONTENT
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks
-from fastapi.responses import JSONResponse, Response
+from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from mcp_server.json_rpc.handler import error_response, handle_single_request
 from mcp_server.json_rpc.model import (
@@ -63,3 +63,21 @@ async def handle_post_json_rpc_request(
     else:
         result = await handle_single_request(body, background_tasks)
         return _build_response(result)
+
+
+@router.get("/")
+async def handle_open_sse_stream(request: Request):
+    from mcp_server.sse.producer import event_producer
+
+    async def stream_generator():
+        while True:
+            if await request.is_disconnected():
+                break
+
+            event = await event_producer.poll_event(timeout=1.0)
+            if event:
+                yield event.serialize()
+            else:
+                yield ": keep-alive\n\n"
+
+    return StreamingResponse(stream_generator(), media_type="text/event-stream")
