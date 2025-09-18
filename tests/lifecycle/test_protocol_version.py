@@ -4,17 +4,20 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from parameterized import parameterized
 
-from mcp_server.lifecycle.protocol_version import ProtocolVersion, identify_protocol_version, negotiate_version
+from mcp_server.lifecycle.protocol_version import (
+    ProtocolVersion,
+    identify_protocol_version,
+    negotiate_version,
+)
 from mcp_server.main import app
 
 
 class TestLifecycleProtocolVersion(TestCase):
     @parameterized.expand(
         [
-            ("2024-11-05", ProtocolVersion.VERSION_2024_11_05),
+            ("2024-11-05", ProtocolVersion.VERSION_2025_06_18),
             ("2025-03-26", ProtocolVersion.VERSION_2025_03_26),
             ("2025-06-18", ProtocolVersion.VERSION_2025_06_18),
-            ("2000-01-01", ProtocolVersion.VERSION_2025_06_18),
             (1, ProtocolVersion.VERSION_2025_06_18),
             (None, ProtocolVersion.VERSION_2025_06_18),
         ]
@@ -22,26 +25,33 @@ class TestLifecycleProtocolVersion(TestCase):
     def test_negotiate_version(self, client_version, expected):
         actual = negotiate_version(client_version)
         self.assertEqual(actual, expected)
-    
-    @parameterized.expand([
-        ({}, ProtocolVersion.VERSION_2025_03_26),
-        ({"mcp-protocol-version": "2025-06-18"}, ProtocolVersion.VERSION_2025_06_18),
-        ({"mcp-protocol-version": "2024-11-05"}, ProtocolVersion.VERSION_2024_11_05),
-    ])
+
+    @parameterized.expand(
+        [
+            ({}, ProtocolVersion.VERSION_2025_03_26),
+            (
+                {"mcp-protocol-version": "2025-06-18"},
+                ProtocolVersion.VERSION_2025_06_18,
+            ),
+            (
+                {"mcp-protocol-version": "2025-03-26"},
+                ProtocolVersion.VERSION_2025_03_26,
+            ),
+        ]
+    )
     def test_identify_protocol_version(self, headers, expected):
         actual = identify_protocol_version(headers)
         self.assertEqual(actual, expected)
-    
+
     def test_invalid_identify_protocol_version(self):
         with self.assertRaises(HTTPException):
-            identify_protocol_version({"mcp-protocol-version": "2000-01-01"})
-    
+            identify_protocol_version({"mcp-protocol-version": "2024-11-05"})
+
 
 class TestLifecycleProtocolVersionFunctional(TestCase):
     def setUp(self):
         self.client = TestClient(app)
 
-    
     def test_session_defined_protocol_version(self):
         init_request_body = {
             "jsonrpc": "2.0",

@@ -7,7 +7,6 @@ from mcp_server.lifecycle.session import session_store
 
 
 class ProtocolVersion(Enum):
-    VERSION_2024_11_05 = "2024-11-05"
     VERSION_2025_03_26 = "2025-03-26"
     VERSION_2025_06_18 = "2025-06-18"
 
@@ -26,16 +25,27 @@ def negotiate_version(client_version: str) -> ProtocolVersion:
 
 
 def identify_protocol_version(headers: dict) -> ProtocolVersion:
+    """The protocol version sent by the client SHOULD be the one negotiated during initialization.
+
+    For backwards compatibility, if the server does not receive an MCP-Protocol-Version header,
+    and has no other way to identify the version - for example, by relying on the protocol version
+    negotiated during initialization - the server SHOULD assume protocol version 2025-03-26.
+
+    If the server receives a request with an invalid or unsupported MCP-Protocol-Version, it MUST
+    respond with 400 Bad Request.
+    """
     client_provided = headers.get("mcp-protocol-version")
-    
+
     if client_provided:
         try:
             return ProtocolVersion(client_provided)
         except ValueError:
             raise HTTPException(status_code=BAD_REQUEST)
-    
+
     session_id = headers.get("mcp-session-id")
-    if session_id and "mcp-protocol-version" in (session := session_store.get_session(session_id)):
+    if session_id and "mcp-protocol-version" in (
+        session := session_store.get_session(session_id)
+    ):
         return ProtocolVersion(session["mcp-protocol-version"])
 
     return ProtocolVersion.VERSION_2025_03_26
