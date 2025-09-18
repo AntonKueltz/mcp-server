@@ -3,6 +3,7 @@ from typing import Any
 from fastapi import BackgroundTasks
 from pydantic import ValidationError
 
+from mcp_server.context import meta_progress_token_var
 from mcp_server.data_types import MethodResult
 from mcp_server.methods import registry
 from mcp_server.json_rpc.model import (
@@ -40,11 +41,23 @@ async def error_response(
 
 async def _call_method(json_rpc_request: JsonRpcRequest) -> MethodResult:
     if isinstance(json_rpc_request.params, list):
-        return registry[json_rpc_request.method](*json_rpc_request.params)
+        return await registry[json_rpc_request.method](*json_rpc_request.params)
     elif isinstance(json_rpc_request.params, dict):
-        return registry[json_rpc_request.method](**json_rpc_request.params)
+        return await registry[json_rpc_request.method](**json_rpc_request.params)
     else:
-        return registry[json_rpc_request.method]()
+        return await registry[json_rpc_request.method]()
+
+
+def _set_progress_token(request: JsonRpcRequest):
+    if isinstance(request.params, dict):
+        _meta = request.params.get("_meta")
+
+        if isinstance(_meta, dict):
+            token = _meta.get("progressToken")
+            meta_progress_token_var.set(token)
+
+        if _meta is not None:
+            del request.params["_meta"]
 
 
 async def handle_single_request(
@@ -55,6 +68,8 @@ async def handle_single_request(
         json_rpc_request = JsonRpcRequest.model_validate(body)
     except ValidationError:
         return await error_response(INVALID_REQUEST, "Invalid Request"), {}
+
+    _set_progress_token(json_rpc_request)
 
     if json_rpc_request.method not in registry:
         return await error_response(

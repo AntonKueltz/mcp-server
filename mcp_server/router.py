@@ -1,10 +1,19 @@
-from http.client import ACCEPTED, BAD_REQUEST, NO_CONTENT, OK, PARTIAL_CONTENT
+from http.client import (
+    ACCEPTED,
+    BAD_REQUEST,
+    NO_CONTENT,
+    OK,
+    PARTIAL_CONTENT,
+    UNAUTHORIZED,
+)
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from functools import reduce
 
+from mcp_server.context import mcp_session_id_var
 from mcp_server.json_rpc.handler import error_response, handle_single_request
 from mcp_server.json_rpc.model import (
     INVALID_REQUEST,
@@ -61,8 +70,21 @@ def _build_response(
         return JSONResponse(status_code=BAD_REQUEST, content=result.model_dump())
 
 
+def _set_session(request: Request):
+    session_id = request.headers.get("mcp-session-id")
+
+    if session_id and not session_store.validate_session_id(session_id):
+        raise HTTPException(status_code=UNAUTHORIZED)
+
+    mcp_session_id_var.set(session_id)
+
+
 @router.post("/")
-async def json_rpc_request(body: list[Any] | dict, background_tasks: BackgroundTasks):
+async def json_rpc_request(
+    request: Request, body: list[Any] | dict, background_tasks: BackgroundTasks
+):
+    _set_session(request)
+
     if isinstance(body, list):
         if body:
             result = [
@@ -82,6 +104,8 @@ async def json_rpc_request(body: list[Any] | dict, background_tasks: BackgroundT
 async def open_sse_stream(request: Request):
     from mcp_server.sse.producer import event_producer
 
+    _set_session(request)
+
     async def stream_generator():
         while True:
             if await request.is_disconnected():
@@ -89,7 +113,7 @@ async def open_sse_stream(request: Request):
 
             event = await event_producer.poll_event(timeout=1.0)
             if event:
-                yield event.serialize()
+                yield event
             else:
                 yield ": keep-alive\n\n"
 

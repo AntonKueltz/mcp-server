@@ -4,16 +4,18 @@ from mcp_server.lifecycle.protocol_version import negotiate_version
 from mcp_server.lifecycle.session import session_store
 
 
-def initialize(
+async def initialize(
     protocolVersion: str, capabilities: dict, clientInfo: dict
 ) -> MethodResult:
     ClientCapabilities.model_validate(capabilities)
 
     server_capabilities = ServerCapabilities()
     negotiated_version = negotiate_version(protocolVersion)
-    
+
     session_id = session_store.assign_session()
-    session_store.set_session_data(session_id, "mcp-protocol-version", negotiated_version.value)
+    session_store.set_session_data(
+        session_id, "mcp-protocol-version", negotiated_version.value
+    )
 
     result = {
         "protocolVersion": negotiated_version.value,
@@ -27,6 +29,6 @@ def initialize(
     return result, headers
 
 
-def initialized_notification() -> MethodResult:
+async def initialized_notification() -> MethodResult:
     print("Client initialized")
     return None, {}

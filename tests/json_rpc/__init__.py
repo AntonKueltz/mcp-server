@@ -1,16 +1,16 @@
 from mcp_server.methods import registry
 
 
-def subtract(minuend, subtrahend):
+async def subtract(minuend, subtrahend):
     return minuend - subtrahend, {}
 
 
-def update(*args, **kwargs):
+async def update(*args, **kwargs):
     print(f"Updating with params args {args} and kwargs {kwargs}")
     return None, {}
 
 
-def foobar():
+async def foobar():
     print("foobar!")
     return None, {}
 

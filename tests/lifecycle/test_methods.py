@@ -1,12 +1,12 @@
-from unittest import TestCase
+from unittest import IsolatedAsyncioTestCase
 
 from mcp_server.lifecycle.methods import initialize
 
 
-class TestInitializeMethods(TestCase):
-    def test_initialize(self):
+class TestInitializeMethods(IsolatedAsyncioTestCase):
+    async def test_initialize(self):
         client_protocol_version = "2025-03-26"
-        actual, _ = initialize(client_protocol_version, {}, {})
+        actual, _ = await initialize(client_protocol_version, {}, {})
 
         self.assertEqual(actual["protocolVersion"], "2025-03-26")
         self.assertEqual(actual["capabilities"], {})
