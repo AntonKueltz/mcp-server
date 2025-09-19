@@ -8,7 +8,7 @@ from http.client import (
 )
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks, Header, Request
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from functools import reduce
@@ -70,9 +70,7 @@ def _build_response(
         return JSONResponse(status_code=BAD_REQUEST, content=result.model_dump())
 
 
-def _set_session(request: Request):
-    session_id = request.headers.get("mcp-session-id")
-
+def _set_session(session_id: str | None):
     if session_id and not session_store.validate_session_id(session_id):
         raise HTTPException(status_code=UNAUTHORIZED)
 
@@ -81,9 +79,11 @@ def _set_session(request: Request):
 
 @router.post("/")
 async def json_rpc_request(
-    request: Request, body: list[Any] | dict, background_tasks: BackgroundTasks
+    body: list[Any] | dict,
+    background_tasks: BackgroundTasks,
+    mcp_session_id: str | None = Header(None),
 ):
-    _set_session(request)
+    _set_session(mcp_session_id)
 
     if isinstance(body, list):
         if body:
@@ -101,10 +101,10 @@ async def json_rpc_request(
 
 
 @router.get("/")
-async def open_sse_stream(request: Request):
+async def open_sse_stream(request: Request, mcp_session_id: str | None = Header(None)):
     from mcp_server.sse.producer import event_producer
 
-    _set_session(request)
+    _set_session(mcp_session_id)
 
     async def stream_generator():
         while True:
@@ -121,9 +121,9 @@ async def open_sse_stream(request: Request):
 
 
 @router.delete("/")
-async def terminate_session(request: Request):
-    if "mcp-session-id" not in request.headers:
+async def terminate_session(mcp_session_id: str | None = Header(None)):
+    if mcp_session_id is None:
         return Response(status_code=BAD_REQUEST)
 
-    session_store.terminate_session(request.headers["mcp-session-id"])
+    session_store.terminate_session(mcp_session_id)
     return Response(status_code=NO_CONTENT)
