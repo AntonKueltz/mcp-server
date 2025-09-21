@@ -38,7 +38,7 @@ class RedisQueue(QueueProvider):
         await self.redis.rpush(key, data)
 
     async def pop(self, key: str, timeout: float | None) -> tuple[int, bytes] | None:
-        await self.redis.blpop(key, timeout)
+        return await self.redis.blpop(key, timeout=timeout)
 
     async def close(self):
         await self.redis.close()

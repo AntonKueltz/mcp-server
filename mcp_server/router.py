@@ -106,7 +106,7 @@ async def open_sse_stream(request: Request, mcp_session_id: str | None = Header(
     from mcp_server.main import app
 
     _set_session(mcp_session_id)
-    app.state.session_store.set_session_data("has-event-stream", "1")
+    await app.state.session_store.set_session_data("has-event-stream", "1")
 
     async def stream_generator():
         while True:
