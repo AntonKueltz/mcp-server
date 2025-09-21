@@ -20,7 +20,6 @@ from mcp_server.json_rpc.model import (
     JsonRpcErrorResponse,
     JsonRpcSuccessResponse,
 )
-from mcp_server.lifecycle.session import session_store
 
 router = APIRouter()
 
@@ -71,7 +70,9 @@ def _build_response(
 
 
 def _set_session(session_id: str | None):
-    if session_id and not session_store.validate_session_id(session_id):
+    from mcp_server.main import app
+
+    if session_id and not app.state.session_store.validate_session_id(session_id):
         raise HTTPException(status_code=UNAUTHORIZED)
 
     mcp_session_id_var.set(session_id)
@@ -102,28 +103,38 @@ async def json_rpc_request(
 
 @router.get("/")
 async def open_sse_stream(request: Request, mcp_session_id: str | None = Header(None)):
-    from mcp_server.sse.producer import event_producer
+    from mcp_server.main import app
 
     _set_session(mcp_session_id)
+    app.state.session_store.set_session_data("has-event-stream", "1")
 
     async def stream_generator():
         while True:
             if await request.is_disconnected():
                 break
 
-            event = await event_producer.poll_event(timeout=1.0)
-            if event:
+            event = await app.state.event_queue.poll_event(timeout=1.0)
+            print(event)
+            if event and await app.state.event_queue.is_terminate_session_event(event):
+                await request.close()
+                break
+            elif event:
                 yield event
-            else:
-                yield ": keep-alive\n\n"
 
     return StreamingResponse(stream_generator(), media_type="text/event-stream")
 
 
 @router.delete("/")
 async def terminate_session(mcp_session_id: str | None = Header(None)):
+    from mcp_server.main import app
+
     if mcp_session_id is None:
         return Response(status_code=BAD_REQUEST)
 
-    session_store.terminate_session(mcp_session_id)
+    _set_session(mcp_session_id)
+
+    if await app.state.session_store.get_session_data("has-event-stream"):
+        await app.state.event_queue.terminate_session(mcp_session_id)
+    await app.state.session_store.terminate_session(mcp_session_id)
+
     return Response(status_code=NO_CONTENT)

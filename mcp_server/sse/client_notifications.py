@@ -2,10 +2,11 @@ from json import dumps
 
 from mcp_server.context import meta_progress_token_var
 from mcp_server.sse.model import ServerSentEvent
-from mcp_server.sse.producer import event_producer
 
 
 async def _send_notification(method: str, params: dict):
+    from mcp_server.main import app
+
     data = {
         "jsonrpc": "2.0",
         "method": method,
@@ -13,7 +14,7 @@ async def _send_notification(method: str, params: dict):
     }
 
     event = ServerSentEvent(data=dumps(data, indent=2))
-    await event_producer.enqueue_event(event)
+    await app.state.event_queue.enqueue_event(event)
 
 
 async def progress_notification(
