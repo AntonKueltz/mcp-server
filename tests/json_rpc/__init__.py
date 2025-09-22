@@ -1,7 +1,7 @@
 from mcp_server.methods import registry
 
 
-async def subtract(minuend, subtrahend):
+async def subtract(minuend, subtrahend, request_context):
     return minuend - subtrahend, {}
 
 
@@ -10,7 +10,7 @@ async def update(*args, **kwargs):
     return None, {}
 
 
-async def foobar():
+async def foobar(request_context):
     print("foobar!")
     return None, {}
 

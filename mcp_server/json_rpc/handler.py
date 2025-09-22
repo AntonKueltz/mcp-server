@@ -1,11 +1,11 @@
+from dataclasses import replace
 from typing import Any
 
 from fastapi import BackgroundTasks
 from pydantic import ValidationError
 
-from mcp_server.context import meta_progress_token_var
+from mcp_server.context import RequestContext
 from mcp_server.data_types import MethodResult
-from mcp_server.methods import registry
 from mcp_server.json_rpc.model import (
     INVALID_PARAMS,
     INVALID_REQUEST,
@@ -15,6 +15,7 @@ from mcp_server.json_rpc.model import (
     JsonRpcErrorResponse,
     JsonRpcSuccessResponse,
 )
+from mcp_server.methods import registry
 
 
 async def error_response(
@@ -39,37 +40,47 @@ async def error_response(
     )
 
 
-async def _call_method(json_rpc_request: JsonRpcRequest) -> MethodResult:
+async def _call_method(
+    json_rpc_request: JsonRpcRequest, request_context: RequestContext
+) -> MethodResult:
     if isinstance(json_rpc_request.params, list):
-        return await registry[json_rpc_request.method](*json_rpc_request.params)
+        args = json_rpc_request.params + [request_context]
+        return await registry[json_rpc_request.method](*args)
+
     elif isinstance(json_rpc_request.params, dict):
-        return await registry[json_rpc_request.method](**json_rpc_request.params)
+        kwargs = json_rpc_request.params | {"request_context": request_context}
+        return await registry[json_rpc_request.method](**kwargs)
+
     else:
-        return await registry[json_rpc_request.method]()
+        return await registry[json_rpc_request.method](request_context)
 
 
-def _set_progress_token(request: JsonRpcRequest):
+def _get_progress_token(request: JsonRpcRequest) -> str | int | None:
     if isinstance(request.params, dict):
         _meta = request.params.get("_meta")
 
+        token = None
         if isinstance(_meta, dict):
             token = _meta.get("progressToken")
-            meta_progress_token_var.set(token)
 
         if _meta is not None:
             del request.params["_meta"]
+
+        return token
 
 
 async def handle_single_request(
     body: Any,
     background_tasks: BackgroundTasks,
+    request_context: RequestContext,
 ) -> tuple[JsonRpcErrorResponse | JsonRpcSuccessResponse | None, dict]:
     try:
         json_rpc_request = JsonRpcRequest.model_validate(body)
     except ValidationError:
         return await error_response(INVALID_REQUEST, "Invalid Request"), {}
 
-    _set_progress_token(json_rpc_request)
+    token = _get_progress_token(json_rpc_request)
+    updated_context = replace(request_context, progress_token=token)
 
     if json_rpc_request.method not in registry:
         return await error_response(
@@ -79,11 +90,12 @@ async def handle_single_request(
     try:
         # handle notifications which do not expect a response
         if json_rpc_request.id is None:
-            background_tasks.add_task(_call_method, json_rpc_request)
+            background_tasks.add_task(_call_method, json_rpc_request, updated_context)
             return None, {}
 
-        result, headers = await _call_method(json_rpc_request)
-    except TypeError:
+        result, headers = await _call_method(json_rpc_request, updated_context)
+    except TypeError as e:
+        print(e)
         return await error_response(
             INVALID_PARAMS, "Invalid params", json_rpc_request
         ), {}

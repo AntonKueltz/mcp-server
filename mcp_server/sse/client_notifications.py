@@ -1,26 +1,16 @@
 from json import dumps
 
-from mcp_server.context import meta_progress_token_var
+from mcp_server.context import RequestContext
 from mcp_server.sse.model import ServerSentEvent
 
 
-async def _send_notification(method: str, params: dict):
-    from mcp_server.main import app
-
-    data = {
-        "jsonrpc": "2.0",
-        "method": method,
-        "params": params,
-    }
-
-    event = ServerSentEvent(data=dumps(data, indent=2))
-    await app.state.event_queue.enqueue_event(event)
-
-
 async def progress_notification(
-    progress: int | float, total: int | float | None = None, message: str | None = None
+    request_context: RequestContext,
+    progress: int | float,
+    total: int | float | None = None,
+    message: str | None = None,
 ):
-    progress_token = meta_progress_token_var.get()
+    progress_token = request_context.progress_token
     if progress_token is None:
         return
 
@@ -33,4 +23,11 @@ async def progress_notification(
     if message:
         params["message"] = message
 
-    await _send_notification("notifications/progress", params)
+    data = {
+        "jsonrpc": "2.0",
+        "method": "notifications/progress",
+        "params": params,
+    }
+
+    event = ServerSentEvent(data=dumps(data, indent=2))
+    await request_context.event_queue.enqueue_event(request_context.session_id, event)

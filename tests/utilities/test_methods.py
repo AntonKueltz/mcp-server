@@ -1,33 +1,23 @@
-from http.client import OK
-from unittest import TestCase
-from unittest.mock import AsyncMock
+from http.client import NO_CONTENT, OK
 
-from fastapi.testclient import TestClient
-
-from mcp_server.lifecycle.session import SessionStore
-from mcp_server.main import app
+from mcp_server.context import RequestContext
 from mcp_server.methods import registry
 from mcp_server.sse.client_notifications import progress_notification
-from mcp_server.sse.queue import EventQueue
+from tests import TestWithApp
 
 
 # define a simple method that reports progress and register it the service
-async def method_with_progress_notification():
-    await progress_notification(progress=50, total=100, message="Testing 123...")
+async def method_with_progress_notification(request_context: RequestContext):
+    await progress_notification(
+        request_context, progress=50, total=100, message="Testing 123..."
+    )
     return {}, {}
 
 
 registry["example"] = method_with_progress_notification
 
 
-class TestUtilitiesMethods(TestCase):
-    def setUp(self):
-        redis = AsyncMock()
-        app.state.session_store = SessionStore(redis)
-        app.state.event_queue = EventQueue(redis)
-
-        self.client = TestClient(app)
-
+class TestUtilitiesMethods(TestWithApp):
     def test_ping(self):
         request_body = {"jsonrpc": "2.0", "id": "123", "method": "ping"}
         expected = {"jsonrpc": "2.0", "id": "123", "result": {}}
@@ -56,7 +46,7 @@ class TestUtilitiesMethods(TestCase):
         headers = {"mcp-session-id": session_id}
 
         # open up an event stream for the session
-        _ = self.client.stream("/", "GET", headers=headers)
+        _ = self.client.stream("GET", "/", headers=headers)
 
         # call a method that reports progress to the event stream
         method_body = {
@@ -67,3 +57,16 @@ class TestUtilitiesMethods(TestCase):
         }
         resp = self.client.post("/", json=method_body, headers=headers)
         self.assertEqual(resp.status_code, OK)
+
+        # events = []
+        # for line in stream.iter_lines():
+        #     if line.startswith("data:"):
+        #         events.append(line)
+        #     if line == "":
+        #         break
+
+        # close the stream and end the session
+        resp = self.client.delete("/", headers=headers)
+        self.assertEqual(resp.status_code, NO_CONTENT)
+
+        # self.assertEqual(events, "foo")

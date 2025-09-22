@@ -8,18 +8,20 @@ from http.client import (
 )
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Header, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from functools import reduce
 
-from mcp_server.context import mcp_session_id_var
+from mcp_server.context import RequestContext, get_event_queue, get_session_store
 from mcp_server.json_rpc.handler import error_response, handle_single_request
 from mcp_server.json_rpc.model import (
     INVALID_REQUEST,
     JsonRpcErrorResponse,
     JsonRpcSuccessResponse,
 )
+from mcp_server.lifecycle.session import SessionStore
+from mcp_server.sse.queue import EventQueue
 
 router = APIRouter()
 
@@ -69,27 +71,24 @@ def _build_response(
         return JSONResponse(status_code=BAD_REQUEST, content=result.model_dump())
 
 
-def _set_session(session_id: str | None):
-    from mcp_server.main import app
-
-    if session_id and not app.state.session_store.validate_session_id(session_id):
-        raise HTTPException(status_code=UNAUTHORIZED)
-
-    mcp_session_id_var.set(session_id)
-
-
 @router.post("/")
 async def json_rpc_request(
     body: list[Any] | dict,
     background_tasks: BackgroundTasks,
     mcp_session_id: str | None = Header(None),
+    event_queue: EventQueue = Depends(get_event_queue),
+    session_store: SessionStore = Depends(get_session_store),
 ):
-    _set_session(mcp_session_id)
+    if mcp_session_id and not session_store.validate_session_id(mcp_session_id):
+        raise HTTPException(status_code=UNAUTHORIZED)
+
+    request_context = RequestContext(event_queue, session_store, mcp_session_id)
 
     if isinstance(body, list):
         if body:
             result = [
-                await handle_single_request(req, background_tasks) for req in body
+                await handle_single_request(req, background_tasks, request_context)
+                for req in body
             ]
             return _build_bulk_response(result)
         else:
@@ -97,25 +96,32 @@ async def json_rpc_request(
             return _build_response(result, {})
 
     else:
-        result = await handle_single_request(body, background_tasks)
+        result = await handle_single_request(body, background_tasks, request_context)
         return _build_response(*result)
 
 
 @router.get("/")
-async def open_sse_stream(request: Request, mcp_session_id: str | None = Header(None)):
-    from mcp_server.main import app
+async def open_sse_stream(
+    request: Request,
+    mcp_session_id: str | None = Header(None),
+    event_queue: EventQueue = Depends(get_event_queue),
+    session_store: SessionStore = Depends(get_session_store),
+):
+    if mcp_session_id is None or not session_store.validate_session_id(mcp_session_id):
+        raise HTTPException(status_code=UNAUTHORIZED)
 
-    _set_session(mcp_session_id)
-    await app.state.session_store.set_session_data("has-event-stream", "1")
+    await session_store.set_session_data(mcp_session_id, "has-event-stream", "1")
 
     async def stream_generator():
+        yield ": stream open\n\n"
+
         while True:
             if await request.is_disconnected():
                 break
 
-            event = await app.state.event_queue.poll_event(timeout=1.0)
+            event = await event_queue.poll_event(mcp_session_id, timeout=1.0)
             print(event)
-            if event and await app.state.event_queue.is_terminate_session_event(event):
+            if event and event_queue.is_terminate_session_event(event):
                 await request.close()
                 break
             elif event:
@@ -125,16 +131,18 @@ async def open_sse_stream(request: Request, mcp_session_id: str | None = Header(
 
 
 @router.delete("/")
-async def terminate_session(mcp_session_id: str | None = Header(None)):
-    from mcp_server.main import app
-
+async def terminate_session(
+    mcp_session_id: str | None = Header(None),
+    event_queue: EventQueue = Depends(get_event_queue),
+    session_store: SessionStore = Depends(get_session_store),
+):
     if mcp_session_id is None:
         return Response(status_code=BAD_REQUEST)
+    if not session_store.validate_session_id(mcp_session_id):
+        raise HTTPException(status_code=UNAUTHORIZED)
 
-    _set_session(mcp_session_id)
-
-    if await app.state.session_store.get_session_data("has-event-stream"):
-        await app.state.event_queue.terminate_session(mcp_session_id)
-    await app.state.session_store.terminate_session(mcp_session_id)
+    if await session_store.get_session_data(mcp_session_id, "has-event-stream"):
+        await event_queue.terminate_session(mcp_session_id)
+    await session_store.terminate_session(mcp_session_id)
 
     return Response(status_code=NO_CONTENT)

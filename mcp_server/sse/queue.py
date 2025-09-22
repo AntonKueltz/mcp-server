@@ -7,7 +7,6 @@ from redis.exceptions import (
     TimeoutError as RedisTimeout,
 )
 
-from mcp_server.context import mcp_session_id_var
 from mcp_server.sse.model import ServerSentEvent
 
 TERMINATE_SESSION_EVENT = "TERMINATE_SESSION"
@@ -50,36 +49,39 @@ class EventQueue:
     def __init__(self, client: QueueProvider):
         self.client = client
 
-    def _get_key(self) -> str:
-        session_id = mcp_session_id_var.get()
+    def _get_key(self, session_id: str | None) -> str:
         if session_id is None:
             return "events"
 
         return f"events:{session_id}"
 
-    async def enqueue_event(self, event: ServerSentEvent) -> bool:
+    async def enqueue_event(
+        self, session_id: str | None, event: ServerSentEvent
+    ) -> bool:
         try:
-            key = self._get_key()
+            key = self._get_key(session_id)
             await self.client.push(key, event.serialize())
             return True
         except (ConnectionError, RedisTimeout, ResponseError, ValueError):
             return False
 
-    async def poll_event(self, timeout: float | None = None) -> str | None:
+    async def poll_event(
+        self, session_id: str | None, timeout: float | None = None
+    ) -> str | None:
         try:
-            key = self._get_key()
+            key = self._get_key(session_id)
             _, event = await self.client.pop(key, timeout=timeout)
             return event.decode()
         except (ConnectionError, RedisTimeout, ResponseError, TypeError):
             return None
 
-    async def terminate_session(self, mcp_session_id: str) -> bool:
-        if mcp_session_id is None:
+    async def terminate_session(self, session_id: str | None) -> bool:
+        if session_id is None:
             raise ValueError("Cannot terminate a session with no session id")
 
         event = ServerSentEvent(event=TERMINATE_SESSION_EVENT)
-        return await self.enqueue_event(event)
+        return await self.enqueue_event(session_id, event)
 
-    async def is_terminate_session_event(self, event: str) -> bool:
+    def is_terminate_session_event(self, event: str) -> bool:
         event = event.strip()
         return event == f"event: {TERMINATE_SESSION_EVENT}"

@@ -3,6 +3,8 @@ from http.client import BAD_REQUEST
 
 from fastapi import HTTPException
 
+from mcp_server.context import RequestContext
+
 
 class ProtocolVersion(Enum):
     VERSION_2025_03_26 = "2025-03-26"
@@ -22,7 +24,9 @@ def negotiate_version(client_version: str) -> ProtocolVersion:
         return ProtocolVersion.VERSION_2025_06_18
 
 
-async def identify_protocol_version(headers: dict) -> ProtocolVersion:
+async def identify_protocol_version(
+    headers: dict, request_context: RequestContext
+) -> ProtocolVersion:
     """The protocol version sent by the client SHOULD be the one negotiated during initialization.
 
     For backwards compatibility, if the server does not receive an MCP-Protocol-Version header,
@@ -32,8 +36,6 @@ async def identify_protocol_version(headers: dict) -> ProtocolVersion:
     If the server receives a request with an invalid or unsupported MCP-Protocol-Version, it MUST
     respond with 400 Bad Request.
     """
-    from mcp_server.main import app
-
     client_provided = headers.get("mcp-protocol-version")
 
     if client_provided:
@@ -42,8 +44,8 @@ async def identify_protocol_version(headers: dict) -> ProtocolVersion:
         except ValueError:
             raise HTTPException(status_code=BAD_REQUEST)
 
-    if version := await app.state.session_store.get_session_data(
-        "mcp-protocol-version"
+    if version := await request_context.session_store.get_session_data(
+        request_context.session_id, "mcp-protocol-version"
     ):
         return ProtocolVersion(version)
 

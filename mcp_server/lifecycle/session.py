@@ -8,8 +8,6 @@ from uuid import uuid4
 
 from redis.asyncio.client import Redis
 
-from mcp_server.context import mcp_session_id_var
-
 
 # define this interface so we can mock out redis with a lightweight map in tests
 class StoreProvider(ABC):
@@ -74,24 +72,22 @@ class SessionStore:
 
         return compare_digest(expected, computed)
 
-    async def get_session_data(self, key: str) -> str | None:
-        session_id = mcp_session_id_var.get()
-
+    async def get_session_data(self, session_id: str | None, key: str) -> str | None:
         if not self.validate_session_id(session_id):
             return None
 
         return await self.client.get(session_id, key)
 
-    async def set_session_data(self, key: str, data: Any) -> bool:
-        session_id = mcp_session_id_var.get()
-
+    async def set_session_data(
+        self, session_id: str | None, key: str, data: Any
+    ) -> bool:
         if not self.validate_session_id(session_id):
             return False
 
         await self.client.set(session_id, key, data)
         return True
 
-    async def terminate_session(self, session_id: str) -> bool:
+    async def terminate_session(self, session_id: str | None) -> bool:
         if not self.validate_session_id(session_id):
             return False
 

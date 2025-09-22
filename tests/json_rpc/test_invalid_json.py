@@ -7,7 +7,7 @@ from mcp_server.main import app
 
 
 class TestInvalidJson(TestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.client = TestClient(app)
 
     @parameterized.expand(
