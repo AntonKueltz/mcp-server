@@ -1,12 +1,6 @@
 # Overview
 A server implementing the Model Context Protocol (MCP). This code is pre-alpha.
 
-The goals of this implementation are -
-* Minimal third party dependencies (fastapi, redis, and a handful of test tools for dev)
-* Extensibility
-* Feature richness
-* Ease of development (i.e. a well organized codebase and an implementation that attempts to be minimal without being too clever)
-
 # Organization
 TODO
 
@@ -33,3 +27,16 @@ part of handling another request)
 ### Run Tests
 
     uv run pytest
+
+### Customize Queue and Session Providers
+
+By default redis is used to provide a backend for event queuing and session storage.
+Developers are free to implement their own backends. There are interfaces that the
+client classes for the backend(s) must conform to -
+* For event queuing - `mcp_server.sse.queue.QueueProvider`
+* For session storage - `mcp_server.lifecycle.session.StoreProvider`
+
+There are functions in `mcp_server.context` that must then be updated to use these
+providers -
+* `get_event_queue` which should `yield` an `mcp_server.sse.queue.EventQueue` instance that was instantiated with an instance of your custom queue provider passed to it.
+* `get_session_store` which should `yield` an `mcp_server.lifecycle.session.SessionStore` instance that was instantiated with an instance of your custom session provider passed to it.
