@@ -39,3 +39,16 @@ class TestSSE_Queue(IsolatedAsyncioTestCase):
     async def test_queue_timeout(self):
         self.queue.client.pop = AsyncMock(side_effect=TimeoutError)
         self.assertIsNone(await self.queue.poll_event("session", timeout=0.001))
+
+    async def test_terminate_session(self):
+        session_id = "session"
+
+        await self.queue.terminate_session(session_id)
+        event = await self.queue.poll_event(session_id, timeout=0.01)
+
+        self.assertIsNotNone(event)
+        self.assertTrue(self.queue.is_terminate_session_event(event))
+
+    async def test_terminate_session_none(self):
+        with self.assertRaises(ValueError):
+            await self.queue.terminate_session(None)
