@@ -54,5 +54,12 @@ providers -
 
 # TODO
 
+## Tools
 - pagination support
-- prompt list changed notifications (hook into `add_prompt` method)
+- list changed notifications (hook into `add_prompt` method)
+
+## Resources
+- pagination support
+- resource templates
+- list changed notifications (hook into `add-resource` method)
+- subscription notifications

@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 
+from pydantic import AnyUrl, FileUrl
+
 from mcp_server.model import BaseConfig
 
 
@@ -35,7 +37,7 @@ class AudioContent(BaseConfig):
 
 
 class Resource(BaseConfig):
-    uri: str
+    uri: AnyUrl | FileUrl
     name: str
     title: str
     mime_type: str
@@ -69,7 +71,7 @@ class Prompt(BaseConfig, ABC):
     description: str | None = None
     arguments: list[Argument] | None = None
 
-    def as_list_item(self):
+    def as_list_item(self) -> PromptListItem:
         return PromptListItem(
             name=self.name,
             title=self.title,
@@ -77,7 +79,7 @@ class Prompt(BaseConfig, ABC):
             arguments=self.arguments,
         )
 
-    def as_detail(self):
+    def as_detail(self) -> PromptDetail:
         return PromptDetail(description=self.description, messages=self.messages)
 
     @abstractmethod

@@ -17,7 +17,8 @@ async def initialize(
     ClientCapabilities.model_validate(capabilities)
 
     server_capabilities = ServerCapabilities(
-        prompts=SubCapabilities(list_changed=False)
+        prompts=SubCapabilities(),
+        resources=SubCapabilities(),
     )
     negotiated_version = negotiate_version(protocolVersion)
 

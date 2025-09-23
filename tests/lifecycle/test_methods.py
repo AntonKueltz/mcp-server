@@ -11,10 +11,12 @@ class TestInitializeMethods(IsolatedAsyncioTestCase):
     async def test_initialize(self):
         client_protocol_version = "2025-03-26"
         context = RequestContext(AsyncMock(), AsyncMock())
+        expected_capabilities = {"prompts": {}, "resources": {}}
+
         actual, _ = await initialize(client_protocol_version, {}, {}, context)
 
-        self.assertEqual(actual["protocolVersion"], "2025-03-26")
-        self.assertEqual(actual["capabilities"], {"prompts": {"listChanged": False}})
+        self.assertEqual(actual["protocolVersion"], client_protocol_version)
+        self.assertEqual(actual["capabilities"], expected_capabilities)
 
 
 class TestInitializeMethodsFunctional(TestWithApp):

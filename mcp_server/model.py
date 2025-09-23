@@ -9,4 +9,6 @@ class BaseConfig(BaseModel):
     )
 
     def model_dump(self, **kwargs):
-        return super().model_dump(by_alias=True, exclude_none=True, **kwargs)
+        return super().model_dump(
+            mode="json", by_alias=True, exclude_none=True, **kwargs
+        )
