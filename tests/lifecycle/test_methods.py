@@ -14,7 +14,7 @@ class TestInitializeMethods(IsolatedAsyncioTestCase):
         actual, _ = await initialize(client_protocol_version, {}, {}, context)
 
         self.assertEqual(actual["protocolVersion"], "2025-03-26")
-        self.assertEqual(actual["capabilities"], {})
+        self.assertEqual(actual["capabilities"], {"prompts": {"listChanged": False}})
 
 
 class TestInitializeMethodsFunctional(TestWithApp):

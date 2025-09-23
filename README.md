@@ -28,6 +28,17 @@ part of handling another request)
 
     uv run pytest
 
+### Add Prompts
+
+Adding additional prompts requires writing a new class per prompt and then registering an
+instance of the class as follows.
+
+1. Extend the `mcp_server.prompts.model.Prompt` base class.
+2. Implement the `set_messages` method. This should set the messages returned to the caller based on the arguments passed in the call. If the messages are independent of arguments (or no arguments are required) then the message should simply be set to a static value.
+3. Instantiate an instance of your class and pass it to a call of `mcp_server.prompts.inventory.add_prompt`.
+
+For an example of the above see [`tests.prompts.test_methods`](tests/prompts/test_methods.py).
+
 ### Customize Queue and Session Providers
 
 By default redis is used to provide a backend for event queuing and session storage.
@@ -40,3 +51,8 @@ There are functions in `mcp_server.context` that must then be updated to use the
 providers -
 * `get_event_queue` which should `yield` an `mcp_server.sse.queue.EventQueue` instance that was instantiated with an instance of your custom queue provider passed to it.
 * `get_session_store` which should `yield` an `mcp_server.lifecycle.session.SessionStore` instance that was instantiated with an instance of your custom session provider passed to it.
+
+# TODO
+
+- pagination support
+- prompt list changed notifications (hook into `add_prompt` method)

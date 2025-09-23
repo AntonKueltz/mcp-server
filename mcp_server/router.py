@@ -120,10 +120,12 @@ async def open_sse_stream(
                 break
 
             event = await event_queue.poll_event(mcp_session_id, timeout=1.0)
-            print(event)
+
             if event and event_queue.is_terminate_session_event(event):
+                yield ": stream closed\n\n"
                 await request.close()
                 break
+
             elif event:
                 yield event
 
