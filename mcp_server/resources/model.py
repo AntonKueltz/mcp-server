@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from pydantic import AnyUrl
+from pydantic import AnyUrl, computed_field
 
 from mcp_server.model import BaseConfig
 
@@ -48,10 +48,19 @@ class ResourceDetail(BaseConfig):
 class Resource(BaseConfig):
     uri: AnyUrl
     name: str
-    content: TextContent | BinaryContent
     title: str | None = None
     description: str | None = None
     size: int | None = None
+
+    @computed_field
+    @property
+    def content(self) -> TextContent | BinaryContent:
+        from mcp_server.resources.file_system import read_file
+
+        if self.uri.scheme == "file":
+            return read_file(self.uri)
+
+        raise ValueError("Unsupported URI scheme")
 
     def as_list_item(self) -> ResourceListItem:
         return ResourceListItem(

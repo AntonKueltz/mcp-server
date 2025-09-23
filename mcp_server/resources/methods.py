@@ -16,7 +16,8 @@ async def list_resources(request_context: RequestContext) -> MethodResult:
 
 
 async def read_resource(uri: str, request_context: RequestContext) -> MethodResult:
-    resource = get_resource(AnyUrl(uri))
+    url = AnyUrl(uri)
+    resource = get_resource(url)
 
     if resource is None:
         raise HTTPException(status_code=NOT_FOUND)
