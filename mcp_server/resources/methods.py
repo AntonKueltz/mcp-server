@@ -5,7 +5,7 @@ from pydantic import AnyUrl
 
 from mcp_server.context import RequestContext
 from mcp_server.data_types import MethodResult
-from mcp_server.resources.inventory import all_resources, get_resource
+from mcp_server.resources import all_resources, get_resource
 
 
 async def list_resources(request_context: RequestContext) -> MethodResult:

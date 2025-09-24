@@ -4,7 +4,7 @@ from fastapi import HTTPException
 
 from mcp_server.context import RequestContext
 from mcp_server.data_types import MethodResult
-from mcp_server.prompts.inventory import all_prompts, get_prompt as get_prompt_by_name
+from mcp_server.prompts import all_prompts, get_prompt as get_prompt_by_name
 
 
 async def list_prompts(request_context: RequestContext) -> MethodResult:

@@ -1,6 +1,6 @@
 from http.client import OK
 
-from mcp_server.prompts.inventory import add_prompt
+from mcp_server.prompts import add_prompt
 from mcp_server.prompts.model import Argument, Message, Prompt, Role, TextContent
 from tests import TestWithApp
 

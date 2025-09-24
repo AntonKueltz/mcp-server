@@ -35,7 +35,7 @@ instance of the class as follows.
 
 1. Extend the `mcp_server.prompts.model.Prompt` base class.
 2. Implement the `set_messages` method. This should set the messages returned to the caller based on the arguments passed in the call. If the messages are independent of arguments (or no arguments are required) then the message should simply be set to a static value.
-3. Instantiate an instance of your class and pass it to a call of `mcp_server.prompts.inventory.add_prompt`.
+3. Instantiate an instance of your class and pass it to a call of `mcp_server.prompts.add_prompt`.
 
 For an example of the above see [`tests.prompts.test_methods`](tests/prompts/test_methods.py).
 

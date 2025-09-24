@@ -1,7 +1,7 @@
 from http.client import OK
 from unittest.mock import patch
 
-from mcp_server.resources.inventory import add_resource
+from mcp_server.resources import add_resource
 from mcp_server.resources.model import Resource, TextContent
 from tests import TestWithApp
 

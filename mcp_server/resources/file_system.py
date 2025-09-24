@@ -2,7 +2,7 @@ from pathlib import Path
 
 from pydantic import AnyUrl
 
-from mcp_server.resources.inventory import all_resources
+from mcp_server.resources import all_resources
 from mcp_server.resources.model import TextContent
 
 
