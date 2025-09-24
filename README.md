@@ -61,5 +61,6 @@ providers -
 ## Resources
 - pagination support
 - resource templates
+- annotations support
 - list changed notifications (hook into `add-resource` method)
 - subscription notifications

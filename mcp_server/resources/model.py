@@ -12,9 +12,9 @@ class IntendedAudience(Enum):
 
 
 class Annotation(BaseConfig):
-    audience: list[IntendedAudience]
-    priority: float
-    last_modified: datetime
+    audience: list[IntendedAudience] | None = None
+    priority: float | None = None
+    last_modified: datetime | None = None
 
 
 class TextContent(BaseConfig):
@@ -34,6 +34,7 @@ class ResourceListItem(BaseConfig):
     description: str | None = None
     mime_type: str | None = None
     size: int | None = None
+    annotations: Annotation | None = None
 
 
 class ResourceDetail(BaseConfig):
@@ -51,6 +52,7 @@ class Resource(BaseConfig):
     title: str | None = None
     description: str | None = None
     size: int | None = None
+    annotations: Annotation | None = None
 
     @computed_field
     @property
