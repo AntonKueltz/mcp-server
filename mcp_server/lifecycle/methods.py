@@ -19,6 +19,7 @@ async def initialize(
     server_capabilities = ServerCapabilities(
         prompts=SubCapabilities(),
         resources=SubCapabilities(),
+        tools=SubCapabilities(),
     )
     negotiated_version = negotiate_version(protocolVersion)
 

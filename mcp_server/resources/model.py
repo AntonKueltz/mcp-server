@@ -1,18 +1,12 @@
 from datetime import datetime
-from enum import Enum
 
 from pydantic import AnyUrl, computed_field
 
-from mcp_server.model import BaseConfig
-
-
-class IntendedAudience(Enum):
-    USER = "user"
-    ASSISTANT = "assistant"
+from mcp_server.model import BaseConfig, Role
 
 
 class Annotation(BaseConfig):
-    audience: list[IntendedAudience] | None = None
+    audience: list[Role] | None = None
     priority: float | None = None
     last_modified: datetime | None = None
 

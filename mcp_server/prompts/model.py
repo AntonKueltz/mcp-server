@@ -1,9 +1,12 @@
 from abc import ABC, abstractmethod
-from enum import Enum
-
-from pydantic import AnyUrl, FileUrl
-
-from mcp_server.model import BaseConfig
+from mcp_server.model import (
+    AudioContent,
+    BaseConfig,
+    EmbeddedResource,
+    ImageContent,
+    Role,
+    TextContent,
+)
 
 
 class Argument(BaseConfig):
@@ -17,41 +20,6 @@ class PromptListItem(BaseConfig):
     title: str | None = None
     description: str | None = None
     arguments: list[Argument] | None = None
-
-
-class TextContent(BaseConfig):
-    type: str = "text"
-    text: str
-
-
-class ImageContent(BaseConfig):
-    type: str = "image"
-    data: str
-    mime_type: str
-
-
-class AudioContent(BaseConfig):
-    type: str = "audio"
-    data: str
-    mime_type: str
-
-
-class Resource(BaseConfig):
-    uri: AnyUrl | FileUrl
-    name: str
-    title: str
-    mime_type: str
-    text: str
-
-
-class EmbeddedResource(BaseConfig):
-    type: str = "resource"
-    resource: Resource
-
-
-class Role(Enum):
-    USER = "user"
-    ASSISTANT = "assistant"
 
 
 class Message(BaseConfig):

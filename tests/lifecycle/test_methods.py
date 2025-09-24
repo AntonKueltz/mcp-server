@@ -11,7 +11,7 @@ class TestInitializeMethods(IsolatedAsyncioTestCase):
     async def test_initialize(self):
         client_protocol_version = "2025-03-26"
         context = RequestContext(AsyncMock(), AsyncMock())
-        expected_capabilities = {"prompts": {}, "resources": {}}
+        expected_capabilities = {"prompts": {}, "resources": {}, "tools": {}}
 
         actual, _ = await initialize(client_protocol_version, {}, {}, context)
 
