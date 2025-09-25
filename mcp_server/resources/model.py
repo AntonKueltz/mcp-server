@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Awaitable, Callable
 
-from pydantic import AnyUrl, computed_field
+from pydantic import AnyUrl
 
 from mcp_server.model import BaseConfig, Role
 
@@ -12,12 +13,10 @@ class Annotation(BaseConfig):
 
 
 class TextContent(BaseConfig):
-    mime_type: str
     text: str
 
 
 class BinaryContent(BaseConfig):
-    mime_type: str
     blob: str
 
 
@@ -46,17 +45,9 @@ class Resource(BaseConfig):
     title: str | None = None
     description: str | None = None
     size: int | None = None
+    mime_type: str
     annotations: Annotation | None = None
-
-    @computed_field
-    @property
-    def content(self) -> TextContent | BinaryContent:
-        from mcp_server.resources.file_system import read_file
-
-        if self.uri.scheme == "file":
-            return read_file(self.uri)
-
-        raise ValueError("Unsupported URI scheme")
+    get_content: Callable[[], Awaitable[BinaryContent | TextContent]]
 
     def as_list_item(self) -> ResourceListItem:
         return ResourceListItem(
@@ -64,24 +55,24 @@ class Resource(BaseConfig):
             name=self.name,
             title=self.title,
             description=self.description,
-            mime_type=self.content.mime_type,
+            mime_type=self.mime_type,
             size=self.size,
         )
 
-    def as_detail(self) -> ResourceDetail:
-        if isinstance(self.content, TextContent):
+    def as_detail(self, content: BinaryContent | TextContent) -> ResourceDetail:
+        if isinstance(content, TextContent):
             return ResourceDetail(
                 uri=self.uri,
                 name=self.name,
                 title=self.title,
-                mime_type=self.content.mime_type,
-                text=self.content.text,
+                mime_type=self.mime_type,
+                text=content.text,
             )
         else:
             return ResourceDetail(
                 uri=self.uri,
                 name=self.name,
                 title=self.title,
-                mime_type=self.content.mime_type,
-                blob=self.content.blob,
+                mime_type=self.mime_type,
+                blob=content.blob,
             )

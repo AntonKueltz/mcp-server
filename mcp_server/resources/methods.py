@@ -1,10 +1,9 @@
-from http.client import NOT_FOUND
-
-from fastapi import HTTPException
 from pydantic import AnyUrl
 
 from mcp_server.context import RequestContext
 from mcp_server.data_types import MethodResult
+from mcp_server.json_rpc.exceptions import JsonRpcException
+from mcp_server.json_rpc.model import INVALID_PARAMS
 from mcp_server.resources import all_resources, get_resource
 
 
@@ -20,6 +19,7 @@ async def read_resource(uri: str, request_context: RequestContext) -> MethodResu
     resource = get_resource(url)
 
     if resource is None:
-        raise HTTPException(status_code=NOT_FOUND)
+        raise JsonRpcException(code=INVALID_PARAMS, message="Resource not found")
 
-    return {"contents": [resource.as_detail().model_dump()]}, {}
+    content = await resource.get_content()
+    return {"contents": [resource.as_detail(content).model_dump()]}, {}

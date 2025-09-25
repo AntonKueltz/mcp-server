@@ -64,6 +64,42 @@ async def code_review(code: str) -> list[Message]:
 ```
 
 
+### Add Resources
+
+Use the `mcp_server.resources.resource` decorator to create a new resource. The decorator
+should be applied to a function with the following signature (takes no arguments and returns
+the resource content)
+
+```python
+f: Callable[[], Awaitable[mcp_server.resources.model.BinaryContent | mcp_server.resources.model.TextContent]]
+```
+
+As an example, this is how we might implement the
+[rust file resource from the MCP spec](https://modelcontextprotocol.io/specification/2025-06-18/server/resources#protocol-messages)
+
+```python
+from pydantic import AnyUrl
+
+from mcp_server.resources import resource
+from mcp_server.resources.model import TextContent
+
+uri = AnyUrl("file:///project/src/main.rs")
+
+
+@resource(
+    uri=uri,
+    name="main.rs",
+    mime_type="text/x-rust",
+    title="Rust Software Application Main File",
+    description="Primary application entry point",
+)
+async def get_main_rs() -> TextContent:
+    return TextContent(
+        text='fn main() {\n    println!("Hello world!");\n}',
+    )
+```
+
+
 ### Add Tools
 
 Use the `mcp_server.tools.tool` decorator to create a new tool. The decorator

@@ -1,22 +1,25 @@
 from http.client import OK
-from unittest.mock import patch
 
-from mcp_server.resources import add_resource
-from mcp_server.resources.model import Resource, TextContent
+from pydantic import AnyUrl
+
+from mcp_server.resources import resource
+from mcp_server.resources.model import TextContent
 from tests import TestWithApp
 
-file_contents = TextContent(
-    mime_type="text/x-rust",
-    text='fn main() {\n    println!("Hello world!");\n}',
-)
-resource = Resource(
-    uri="file:///project/src/main.rs",
+uri = AnyUrl("file:///project/src/main.rs")
+
+
+@resource(
+    uri=uri,
     name="main.rs",
+    mime_type="text/x-rust",
     title="Rust Software Application Main File",
     description="Primary application entry point",
 )
-
-add_resource(resource)
+async def get_main_rs() -> TextContent:
+    return TextContent(
+        text='fn main() {\n    println!("Hello world!");\n}',
+    )
 
 
 class TestPromptMethods(TestWithApp):
@@ -38,10 +41,7 @@ class TestPromptMethods(TestWithApp):
             },
         }
 
-        with patch(
-            "mcp_server.resources.file_system.read_file", return_value=file_contents
-        ):
-            resp = self.client.post("/", json=req)
+        resp = self.client.post("/", json=req)
 
         self.assertEqual(resp.status_code, OK)
         self.assertEqual(resp.json(), expected)
@@ -69,10 +69,7 @@ class TestPromptMethods(TestWithApp):
             },
         }
 
-        with patch(
-            "mcp_server.resources.file_system.read_file", return_value=file_contents
-        ):
-            resp = self.client.post("/", json=req)
+        resp = self.client.post("/", json=req)
 
         self.assertEqual(resp.status_code, OK)
         self.assertEqual(resp.json(), expected)
