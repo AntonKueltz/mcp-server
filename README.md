@@ -54,7 +54,7 @@ providers -
 
 # TODO
 
-## Tools
+## Prompts
 - pagination support
 - list changed notifications (hook into `add_prompt` method)
 
@@ -64,3 +64,7 @@ providers -
 - annotations support
 - list changed notifications (hook into `add-resource` method)
 - subscription notifications
+
+## Tools
+- pagination support
+- list changed notifications (hook into `add_prompt` method)

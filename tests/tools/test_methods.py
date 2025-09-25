@@ -1,4 +1,4 @@
-from http.client import OK
+from http.client import BAD_REQUEST, OK
 
 from mcp_server.model import TextContent
 from mcp_server.tools import tool
@@ -103,3 +103,18 @@ class TestToolMethods(TestWithApp):
 
         self.assertEqual(resp.status_code, OK)
         self.assertEqual(resp.json(), expected)
+
+    def test_call_tool_invalid_name(self):
+        req = {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": "invalid_tool_name", "arguments": {}},
+        }
+
+        resp = self.client.post("/", json=req)
+        self.assertEqual(resp.status_code, BAD_REQUEST)
+
+        error = resp.json()["error"]
+        self.assertEqual(error["code"], -32602)
+        self.assertEqual(error["message"], "Unknown tool: invalid_tool_name")

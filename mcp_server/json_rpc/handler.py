@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from mcp_server.context import RequestContext
 from mcp_server.data_types import MethodResult
+from mcp_server.json_rpc.exceptions import JsonRpcException
 from mcp_server.json_rpc.model import (
     INVALID_PARAMS,
     INVALID_REQUEST,
@@ -94,8 +95,9 @@ async def handle_single_request(
             return None, {}
 
         result, headers = await _call_method(json_rpc_request, updated_context)
-    except TypeError as e:
-        print(e)
+    except JsonRpcException as exc:
+        return await error_response(exc.code, exc.message, json_rpc_request), {}
+    except TypeError:
         return await error_response(
             INVALID_PARAMS, "Invalid params", json_rpc_request
         ), {}

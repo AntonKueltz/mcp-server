@@ -1,9 +1,8 @@
 from functools import wraps
-from http.client import NOT_FOUND
 from typing import Any, Awaitable, Callable
 
-from fastapi import HTTPException
-
+from mcp_server.json_rpc.exceptions import JsonRpcException
+from mcp_server.json_rpc.model import INVALID_PARAMS
 from mcp_server.model import Content
 from mcp_server.tools.model import Tool
 
@@ -12,7 +11,7 @@ all_tools: dict[str, Tool] = {}
 
 async def call_tool(name: str, *args, **kwargs) -> Content:
     if name not in all_tools:
-        raise HTTPException(status_code=NOT_FOUND)
+        raise JsonRpcException(code=INVALID_PARAMS, message=f"Unknown tool: {name}")
 
     tool = all_tools[name]
     return await tool.callable(*args, **kwargs)
