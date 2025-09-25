@@ -1,7 +1,9 @@
 # Overview
+
 A server implementing the Model Context Protocol (MCP). This code is pre-alpha.
 
 # Organization
+
 TODO
 
 # Development
@@ -12,6 +14,7 @@ TODO
 
 A redis server should be available for the application to use. By default the
 application will try to connect to the default redis URI `redis://localhost:6379`.
+
 
 ### Run Server
 For general development that does not require any coordination across requests
@@ -24,20 +27,80 @@ part of handling another request)
 
     uv run fastapi run --workers 2 mcp_server/main.py
 
+
 ### Run Tests
 
     uv run pytest
 
+
 ### Add Prompts
 
-Adding additional prompts requires writing a new class per prompt and then registering an
-instance of the class as follows.
+Use the `mcp_server.prompts.prompt` decorator to create a new prompt. The decorator
+should be applied to a function with the following signature (takes in the prompt
+arguments from the client and returns the appropriate message(s))
 
-1. Extend the `mcp_server.prompts.model.Prompt` base class.
-2. Implement the `set_messages` method. This should set the messages returned to the caller based on the arguments passed in the call. If the messages are independent of arguments (or no arguments are required) then the message should simply be set to a static value.
-3. Instantiate an instance of your class and pass it to a call of `mcp_server.prompts.add_prompt`.
+```python
+f: Callable[..., Awaitable[list[mcp_server.prompts.model.Message]]]
+```
 
-For an example of the above see [`tests.prompts.test_methods`](tests/prompts/test_methods.py).
+As an example, this is how we might implement the
+[code review prompt from the MCP spec](https://modelcontextprotocol.io/specification/2025-06-18/server/prompts#getting-a-prompt)
+
+```python
+from mcp_server.prompts import prompt
+from mcp_server.prompts.model import Argument, Message, Role, TextContent
+
+
+@prompt(
+    name="code_review",
+    title="Request Code Review",
+    description="Asks the LLM to analyze code quality and suggest improvements",
+    arguments=[Argument(name="code", description="The code to review", required=True)],
+)
+async def code_review(code: str) -> list[Message]:
+    text = f"Please review this code:\n```{code}```"
+    message = Message(role=Role.USER, content=TextContent(text=text))
+    return [message]
+```
+
+
+### Add Tools
+
+Use the `mcp_server.tools.tool` decorator to create a new tool. The decorator
+should be applied to a function with the following signature (takes in the tool
+arguments from the client and returns the appropriate content)
+
+```python
+f: Callable[..., Awaitable[mcp_server.model.Content]]
+```
+
+As an example, this is how we might implement the
+[get weather tool from the MCP spec](https://modelcontextprotocol.io/specification/2025-06-18/server/tools#protocol-messages)
+
+```python
+from mcp_server.model import TextContent
+from mcp_server.tools import tool
+
+
+@tool(
+    name="get_weather",
+    title="Weather Information Provider",
+    description="Get current weather information for a location",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "location": {"type": "string", "description": "City name or zip code"}
+        },
+        "required": ["location"],
+    },
+)
+async def get_weather(location: str) -> TextContent:
+    text = (
+        f"Current weather in {location}:\nTemperature: 72°F\nConditions: Partly cloudy"
+    )
+    return TextContent(text=text)
+```
+
 
 ### Customize Queue and Session Providers
 
@@ -51,6 +114,7 @@ There are functions in `mcp_server.context` that must then be updated to use the
 providers -
 * `get_event_queue` which should `yield` an `mcp_server.sse.queue.EventQueue` instance that was instantiated with an instance of your custom queue provider passed to it.
 * `get_session_store` which should `yield` an `mcp_server.lifecycle.session.SessionStore` instance that was instantiated with an instance of your custom session provider passed to it.
+
 
 # TODO
 

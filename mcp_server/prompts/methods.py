@@ -1,10 +1,9 @@
-from http.client import NOT_FOUND
-
-from fastapi import HTTPException
-
 from mcp_server.context import RequestContext
 from mcp_server.data_types import MethodResult
+from mcp_server.json_rpc.exceptions import JsonRpcException
+from mcp_server.json_rpc.model import INVALID_PARAMS
 from mcp_server.prompts import all_prompts, get_prompt as get_prompt_by_name
+from mcp_server.prompts.model import Prompt
 
 
 async def list_prompts(request_context: RequestContext) -> MethodResult:
@@ -18,9 +17,22 @@ async def get_prompt(
     prompt = get_prompt_by_name(name)
 
     if prompt is None:
-        raise HTTPException(status_code=NOT_FOUND)
+        raise JsonRpcException(
+            code=INVALID_PARAMS, message=f"Invalid prompt name: {name}"
+        )
 
-    result = prompt.model_copy()
-    result.set_messages(arguments)
+    _validate_args(arguments, prompt)
+    detail = await prompt.as_detail(arguments)
+    return detail.model_dump(), {}
 
-    return result.as_detail().model_dump(), {}
+
+def _validate_args(args: dict[str, str], prompt: Prompt):
+    if not prompt.arguments:
+        return
+
+    for required_arg in [a for a in prompt.arguments if a.required]:
+        if required_arg.name not in args:
+            raise JsonRpcException(
+                code=INVALID_PARAMS,
+                message=f"Missing required argument: {required_arg.name}",
+            )

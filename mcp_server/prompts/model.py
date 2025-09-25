@@ -1,4 +1,6 @@
-from abc import ABC, abstractmethod
+from abc import ABC
+from typing import Awaitable, Any, Callable
+
 from mcp_server.model import (
     AudioContent,
     BaseConfig,
@@ -34,10 +36,10 @@ class PromptDetail(BaseConfig):
 
 class Prompt(BaseConfig, ABC):
     name: str
-    messages: list[Message]
     title: str | None = None
     description: str | None = None
     arguments: list[Argument] | None = None
+    set_messages: Callable[..., Awaitable[list[Message]]]
 
     def as_list_item(self) -> PromptListItem:
         return PromptListItem(
@@ -47,9 +49,6 @@ class Prompt(BaseConfig, ABC):
             arguments=self.arguments,
         )
 
-    def as_detail(self) -> PromptDetail:
-        return PromptDetail(description=self.description, messages=self.messages)
-
-    @abstractmethod
-    def set_messages(self, arguments: dict[str, str] | None):
-        pass
+    async def as_detail(self, args: dict[str, Any]) -> PromptDetail:
+        messages = await self.set_messages(**args)
+        return PromptDetail(description=self.description, messages=messages)
